@@ -1,53 +1,41 @@
-//**  https://developers.google.com/sheets/api/quickstart/apps-script */
-//** Testing Google Scripts */
-
-function myFunction() {
-  const spreadsheetId = 'my spreadsheetId';
+// Pulls data from target Google Sheet to add to target Google Calendar
+function pullData() {
+  // Get spreadsheet data
+  const spreadsheetId = 'spreadhsheet';
   const dateRange = 'Main!B210:G211';
-  const calendarId = 'my calendarId'
+  const values = Sheets.Spreadsheets.Values.get(spreadsheetId, dateRange).values;
+  // Get calendar data
+  const calendarId = 'calendarId'
   const calendar = CalendarApp.getCalendarById(calendarId);
 
-  try {
-    // Get the values from the spreadsheet using spreadsheetId and range.
-    const values = Sheets.Spreadsheets.Values.get(spreadsheetId, dateRange).values;
-    //  Print the values from spreadsheet if values are available.
-    if (!values) {
-      console.log('No data found.');
-      return;
-    }
+  try {  
     for (const row in values) {
-      // Test to verify correct values are being used.
-
-      // Extract Date
+      // Set variables baesd on Sheets data
       var date = new Date(values[row][0]);
-      var eventYear = date.getFullYear()
-      var eventMonth = date.getMonth() + 1
-      var eventDay = date.getDate()
+      var [_, eventTitle, department, category, staff, privacy, eventType, notes, links] = values[row];
 
+      // Check if event of same name already exists at date
+      if (!calendar.getEventsForDay(date, {search: eventTitle}).length) {
+        var eventDescription = `
+          Department: ${department}
+          Category: ${category}
+          Staff Responsible: ${staff}
+          Privacy: ${privacy}
+          Type: ${eventType}
+          Notes: ${notes}
+          Link: ${links}
+        `;
 
-      console.log(eventYear, eventMonth, eventDay);
-
-      var eventTitle = values[row][1];
-
-      console.log(eventTitle)
-
-      calendar.createAllDayEvent(eventTitle, date);
-
-      //Avoid duplicate events beings added
-      //
-
-      //console.log('Date: %s', values[row][0]);
-      //console.log('Event: %s', values[row][1]);
-      //console.log('Dept: %s', values[row][2]);
-      //console.log('Cat: %s', values[row][3]);
-      //console.log('Staff: %s', values[row][4]);
-      //console.log('Priv: %s', values[row][5]); 
-
-
+        // Add event to calendar
+        var event = calendar.createAllDayEvent(eventTitle, date);
+        event.setDescription(eventDescription);
+      }
     }
   } 
   catch (err) {
-    // TODO (developer) - Handle Values.get() exception from Sheet API
     console.log(err.message);
   }
 }
+
+// Some blanks in description return undefined instead of blank.
+// May use a seperate calendar for each department
